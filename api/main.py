@@ -1,6 +1,6 @@
 import sys
 import sqlite3
-from fastapi import FastAPI, HTTPException, Query,  Depends, status, Response
+from fastapi import FastAPI, HTTPException, Query,  Depends, status, Response, Header
 from pydantic import BaseModel, Field, conint, validator, ValidationError
 from typing import ClassVar, List, Optional
 from fastapi.middleware.cors import CORSMiddleware
@@ -8,15 +8,14 @@ import re
 #librerias de session
 #from sqlalchemy.orm import Session
 from fastapi.security import OAuth2AuthorizationCodeBearer, OAuth2PasswordRequestForm
-#from jose import JWSError, jwt 
+from jose import JWSError, jwt 
 from datetime import datetime, timedelta
-#from passlib.context import CryptContext
+from passlib.context import CryptContext
 #from database import SessionLocal, engine
 #from models import User
 #librerias acceso a api externa
 import httpx
 from fastapi.responses import JSONResponse
-
 #configuracion para session de usuarios
 #base de datos
 dbJwt ="session.db"
@@ -31,7 +30,6 @@ version = f"{sys.version_info.major}.{sys.version_info.minor}"
 
 app = FastAPI()
 
-#origins = ["http://localhost:3000","https://padel-app-odwu.onrender.com,*"]
 origins = ["*"]
 # Add CORS middleware
 app.add_middleware(
@@ -41,6 +39,11 @@ app.add_middleware(
     allow_methods=["*"],  # Allow all HTTP methods
     allow_headers=["*"],  # Allow all headers
 )
+
+#Funcion para cifrar pwd
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+def hash_password(password: str):
+    return pwd_context.hash(password)
 
 #Funcion para calcular factorial
 def calcular_factorial(n: int) -> int:
