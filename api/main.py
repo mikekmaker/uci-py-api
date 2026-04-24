@@ -749,7 +749,7 @@ def login(data: LoginRequest):
 
     token, exp = create_token({"sub": str(user_id)})
 
-    # guardar sesión
+    # guardar session
     c.execute(
         "INSERT INTO sesiones (user_id, token, exp) VALUES (?, ?, ?)",
         (user_id, token, exp)
