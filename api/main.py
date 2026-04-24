@@ -814,6 +814,21 @@ def me(user_id: int = Depends(get_current_user)):
         "username": user[3]
     }
 
+@app.post("/Logout")
+def logout(authorization: str = Header(...)):
+    token = authorization.replace("Bearer ", "")
+
+    conn = sqlite3.connect(db)
+    c = conn.cursor()
+
+    c.execute("DELETE FROM sesiones WHERE token = ?", (token,))
+    conn.commit()
+    conn.close()
+
+    return {
+        "msg": "Sesion cerrada"
+    }
+
 if __name__ == '__main__':
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8181)
