@@ -687,6 +687,28 @@ async def sumlist(lista: List[int] = Query(...)):
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
+   
+@app.post("/Register",status_code=status.HTTP_201_CREATED)
+def register(user: RegisterRequest):
+    conn = sqlite3.connect(db)
+    c = conn.cursor()
+
+    try:
+        hashed = hash_password(user.password)
+        c.execute(
+            "INSERT INTO usuarios (nombre, apellido, username, password) VALUES (?, ?, ?, ?)",
+            (user.nombre, user.apellido, user.username, hashed)
+        )
+        conn.commit()
+    except sqlite3.IntegrityError:
+        raise HTTPException(status_code=400, detail="Usuario ya existe")
+    finally:
+        conn.close()
+
+    return {
+        "msg": "Usuario creado correctamente"
+    }
+
 if __name__ == '__main__':
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8181)
