@@ -76,7 +76,7 @@ def get_current_user(authorization: str = Header(...)):
     conn = sqlite3.connect(db)
     c = conn.cursor()
 
-    # validar que la sesión siga activa
+    # validar que la session siga activa
     c.execute("SELECT * FROM sesiones WHERE token = ?", (token,))
     session = c.fetchone()
     conn.close()
