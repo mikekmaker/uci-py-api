@@ -100,6 +100,12 @@ class Reserva(BaseModel):
     descripcion: str
     num_personas: int
 
+class RegisterRequest(BaseModel):
+    nombre: str
+    apellido: str
+    username: str
+    password: str
+
 
 # Conectar a la base de datos y crear la tabla si no existe
 def init_db():
