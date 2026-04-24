@@ -17,14 +17,12 @@ from passlib.context import CryptContext
 import httpx
 from fastapi.responses import JSONResponse
 #configuracion para session de usuarios
-#base de datos
-dbJwt ="session.db"
-#outh2 scheme
-#oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
-
+SECRET_KEY = "super_secret_key"
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 60
 #fin configuracion para session de usuarios
-
-db ="dbReservas.db"
+#base de datos
+db ="AuditCode.db"
 
 version = f"{sys.version_info.major}.{sys.version_info.minor}"
 
@@ -43,7 +41,18 @@ app.add_middleware(
 #Funcion para cifrar pwd
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 def hash_password(password: str):
-    return pwd_context.hash(password)
+    return pwd_context.hash(password[:72])
+
+#Funcion para validar pwd en login
+def verify_password(plain, hashed):
+    return pwd_context.verify(plain[:72], hashed)
+
+#Funcion para crear token jwt
+def create_token(data: dict):
+    to_encode = data.copy()
+    expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    to_encode.update({"exp": expire})
+    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM), expire
 
 #Funcion para calcular factorial
 def calcular_factorial(n: int) -> int:
@@ -106,6 +115,10 @@ class Reserva(BaseModel):
 class RegisterRequest(BaseModel):
     nombre: str
     apellido: str
+    username: str
+    password: str
+
+class LoginRequest(BaseModel):
     username: str
     password: str
 
@@ -716,6 +729,38 @@ def register(user: RegisterRequest):
 
     return {
         "msg": "Usuario creado correctamente"
+    }
+    
+@app.post("/Login")
+def login(data: LoginRequest):
+    conn = sqlite3.connect(db)
+    c = conn.cursor()
+
+    c.execute("SELECT id, password FROM usuarios WHERE username = ?", (data.username,))
+    user = c.fetchone()
+
+    if not user:
+        raise HTTPException(status_code=401, detail="Credenciales invalidas")
+
+    user_id, hashed_password = user
+
+    if not verify_password(data.password, hashed_password):
+        raise HTTPException(status_code=401, detail="Credenciales invalidas")
+
+    token, exp = create_token({"sub": str(user_id)})
+
+    # guardar sesión
+    c.execute(
+        "INSERT INTO sesiones (user_id, token, exp) VALUES (?, ?, ?)",
+        (user_id, token, exp)
+    )
+    conn.commit()
+    conn.close()
+
+    return {
+        "access_token": token,
+        "token_type": "bearer",
+        "expires_in": ACCESS_TOKEN_EXPIRE_MINUTES * 60
     }
 
 if __name__ == '__main__':
