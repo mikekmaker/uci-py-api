@@ -8,9 +8,10 @@ import re
 #librerias de session
 #from sqlalchemy.orm import Session
 from fastapi.security import OAuth2AuthorizationCodeBearer, OAuth2PasswordRequestForm
-from jose import JWSError, jwt 
+from jose import JWTError, jwt 
 from datetime import datetime, timedelta
-from passlib.context import CryptContext
+#from passlib.context import CryptContext
+from argon2 import PasswordHasher
 #from database import SessionLocal, engine
 #from models import User
 #librerias acceso a api externa
@@ -39,15 +40,22 @@ app.add_middleware(
 )
 
 #Funcion para cifrar pwd
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+#pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+ph = PasswordHasher()
 def hash_password(password: str):
-    pwd_bytes = password.encode("utf-8")[:72]
-    return pwd_context.hash(pwd_bytes)
+    #pwd_bytes = password.encode("utf-8")[:72]
+    #return pwd_context.hash(pwd_bytes)
+    return ph.hash(password) 
 
 #Funcion para validar pwd en login
 def verify_password(plain, hashed):
-    pwd_bytes = plain.encode("utf-8")[:72]
-    return pwd_context.verify(pwd_bytes, hashed)
+    #pwd_bytes = plain.encode("utf-8")[:72]
+    #return pwd_context.verify(pwd_bytes, hashed)
+    try:
+        ph.verify(hashed, plain)
+        return True
+    except:
+        return False
 
 #Funcion para crear token jwt
 def create_token(data: dict):
@@ -55,6 +63,28 @@ def create_token(data: dict):
     expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM), expire
+
+#Funcion para validar token jwt
+def get_current_user(authorization: str = Header(...)):
+    try:
+        token = authorization.replace("Bearer ", "")
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        user_id = payload.get("sub")
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Token invalido")
+
+    conn = sqlite3.connect(db)
+    c = conn.cursor()
+
+    # validar que la sesión siga activa
+    c.execute("SELECT * FROM sesiones WHERE token = ?", (token,))
+    session = c.fetchone()
+    conn.close()
+
+    if not session:
+        raise HTTPException(status_code=401, detail="Sesion invalida")
+
+    return user_id
 
 #Funcion para calcular factorial
 def calcular_factorial(n: int) -> int:
