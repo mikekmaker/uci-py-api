@@ -795,6 +795,25 @@ def login(data: LoginRequest):
         "expires_in": ACCESS_TOKEN_EXPIRE_MINUTES * 60
     }
 
+@app.get("/me")
+def me(user_id: int = Depends(get_current_user)):
+    conn = sqlite3.connect(db)
+    c = conn.cursor()
+
+    c.execute("SELECT id, nombre, apellido, username FROM usuarios WHERE id = ?", (user_id,))
+    user = c.fetchone()
+    conn.close()
+
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+    return {
+        "id": user[0],
+        "nombre": user[1],
+        "apellido": user[2],
+        "username": user[3]
+    }
+
 if __name__ == '__main__':
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8181)
