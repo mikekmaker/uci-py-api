@@ -41,11 +41,13 @@ app.add_middleware(
 #Funcion para cifrar pwd
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 def hash_password(password: str):
-    return pwd_context.hash(password[:72])
+    pwd_bytes = password.encode("utf-8")[:72]
+    return pwd_context.hash(pwd_bytes)
 
 #Funcion para validar pwd en login
 def verify_password(plain, hashed):
-    return pwd_context.verify(plain[:72], hashed)
+    pwd_bytes = plain.encode("utf-8")[:72]
+    return pwd_context.verify(pwd_bytes, hashed)
 
 #Funcion para crear token jwt
 def create_token(data: dict):
