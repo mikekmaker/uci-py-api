@@ -24,7 +24,6 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 60
 #fin configuracion para session de usuarios
 #base de datos
 db ="AuditCode.db"
-
 version = f"{sys.version_info.major}.{sys.version_info.minor}"
 
 app = FastAPI()
