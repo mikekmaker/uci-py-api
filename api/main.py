@@ -14,9 +14,9 @@ from argon2 import PasswordHasher
 import httpx
 from fastapi.responses import JSONResponse
 
-# ?? AGREGADO Vanesa: librerías para integración con IA y lectura de variables de entorno ??
+# ?? AGREGADO Vanesa: librerï¿½as para integraciï¿½n con IA y lectura de variables de entorno ??
 # json: para parsear la respuesta JSON que devuelve la IA
-# os + dotenv: para leer la API Key desde el archivo .env sin hardcodearla en el código
+# os + dotenv: para leer la API Key desde el archivo .env sin hardcodearla en el cï¿½digo
 import json
 import os
 from groq import Groq
@@ -29,14 +29,14 @@ ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
 #fin configuracion para session de usuarios
 
-# ?? AGREGADO Vanesa: inicialización del cliente de Groq (IA) ??????????????????????????????
+# ?? AGREGADO Vanesa: inicializaciï¿½n del cliente de Groq (IA) ??????????????????????????????
 # load_dotenv() lee el archivo .env y carga las variables de entorno
 # GROQ_API_KEY es la clave secreta para usar la API de Groq (modelo Llama)
 # groq_client es el objeto que usamos para hacer llamadas a la IA
 load_dotenv()
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 groq_client = Groq(api_key=GROQ_API_KEY)
-GROQ_MODEL = "llama-3.3-70b-versatile"  # Modelo gratuito, muy bueno para análisis de código
+GROQ_MODEL = "llama-3.3-70b-versatile"  # Modelo gratuito, muy bueno para anï¿½lisis de cï¿½digo
 # ??????????????????????????????????????????????????????????????????????????????????????????
 
 #base de datos
@@ -93,7 +93,7 @@ def get_current_user(authorization: str = Header(...)):
 
 def calcular_factorial(n: int) -> int:
     if n < 0:
-        raise ValueError("El número no puede ser negativo")
+        raise ValueError("El nï¿½mero no puede ser negativo")
     if n == 0 or n == 1:
         return 1
     resultado = 1
@@ -109,7 +109,7 @@ def suma_list_elems(lista, actual=0):
 
 @app.get("/")
 async def read_root():
-    message = f"Ejercicios Programación de Vanguardia con FastAPI corriendo en Uvicorn con Gunicorn. Using Python {version}"
+    message = f"Ejercicios Programaciï¿½n de Vanguardia con FastAPI corriendo en Uvicorn con Gunicorn. Using Python {version}"
     return {"message": message}
 
 
@@ -152,7 +152,7 @@ class LoginRequest(BaseModel):
 
 # ?? AGREGADO Vanesa: modelo de datos para el endpoint /analyze ????????????????
 # Define la estructura del JSON que manda el frontend (editor Monaco)
-# code: el código fuente a analizar
+# code: el cï¿½digo fuente a analizar
 # language: el lenguaje seleccionado en el dropdown del editor
 class AnalyzeRequest(BaseModel):
     code: str
@@ -203,9 +203,9 @@ def init_db():
               ''')
 
     # ?? AGREGADO Vanesa: tabla auditorias para guardar el historial por usuario ??
-    # Cada análisis queda registrado con: quién lo hizo, cuándo, qué código,
+    # Cada anï¿½lisis queda registrado con: quiï¿½n lo hizo, cuï¿½ndo, quï¿½ cï¿½digo,
     # y el resultado completo de la IA guardado como JSON en el campo 'resultado'.
-    # Así el usuario puede ver su historial y volver a consultar análisis anteriores.
+    # Asï¿½ el usuario puede ver su historial y volver a consultar anï¿½lisis anteriores.
     c.execute('''
         CREATE TABLE IF NOT EXISTS auditorias (
             id          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -538,61 +538,61 @@ def logout(authorization: str = Header(...)):
 
 
 # ??????????????????????????????????????????????????????????????????????????????
-# AGREGADO Vanesa — Endpoints de Auditoría de Código con IA
+# AGREGADO Vanesa ï¿½ Endpoints de Auditorï¿½a de Cï¿½digo con IA
 # Rama: f-analizar
-# Descripción: recibe código del editor Monaco, lo analiza con Groq (Llama),
+# Descripciï¿½n: recibe cï¿½digo del editor Monaco, lo analiza con Groq (Llama),
 #              guarda el resultado en la tabla auditorias y expone un historial
 #              por usuario identificado con id, lenguaje, fecha y hora.
 # ??????????????????????????????????????????????????????????????????????????????
 
 # ?? AGREGADO Vanesa: prompt del sistema que define el comportamiento de la IA ??
 # Este texto se manda como "rol de sistema" en cada llamada a Groq.
-# Le dice a la IA que actúe como Senior Developer auditor y que responda
-# ÚNICAMENTE con JSON puro, para que podamos parsearlo sin problemas.
+# Le dice a la IA que actï¿½e como Senior Developer auditor y que responda
+# ï¿½NICAMENTE con JSON puro, para que podamos parsearlo sin problemas.
 AUDIT_SYSTEM_PROMPT = """
-Sos un Senior Developer con 15 años de experiencia auditando código en empresas de tecnología.
-Tu tarea es analizar el fragmento de código que te envían e identificar problemas reales.
+Sos un Senior Developer con 15 aï¿½os de experiencia auditando cï¿½digo en empresas de tecnologï¿½a.
+Tu tarea es analizar el fragmento de cï¿½digo que te envï¿½an e identificar problemas reales.
 
-Categorías de severidad:
+Categorï¿½as de severidad:
 - CRITICO: vulnerabilidades de seguridad (SQL Injection, XSS, credenciales hardcodeadas, etc.)
-- ADVERTENCIA: errores de lógica, malas prácticas, código que puede fallar en producción
-- SUGERENCIA: oportunidades de refactorización, Clean Code, naming conventions
+- ADVERTENCIA: errores de lï¿½gica, malas prï¿½cticas, cï¿½digo que puede fallar en producciï¿½n
+- SUGERENCIA: oportunidades de refactorizaciï¿½n, Clean Code, naming conventions
 
-REGLA IMPORTANTE: Respondé ÚNICAMENTE con un objeto JSON válido.
-Sin texto adicional, sin markdown, sin bloques de código, sin explicaciones fuera del JSON.
+REGLA IMPORTANTE: Respondï¿½ ï¿½NICAMENTE con un objeto JSON vï¿½lido.
+Sin texto adicional, sin markdown, sin bloques de cï¿½digo, sin explicaciones fuera del JSON.
 
-Estructura exacta que debés devolver:
+Estructura exacta que debï¿½s devolver:
 {
   "issues": [
     {
       "severity": "CRITICO|ADVERTENCIA|SUGERENCIA",
       "type": "NOMBRE_CORTO_DEL_PROBLEMA",
-      "description": "Explicación clara del problema encontrado",
+      "description": "Explicaciï¿½n clara del problema encontrado",
       "line": 1
     }
   ],
-  "refactored_code": "El código completo corregido y mejorado aquí",
-  "pedagogical_explanation": "Explicación teórica del concepto fallido, escrita para un estudiante universitario de Programación de Vanguardia"
+  "refactored_code": "El cï¿½digo completo corregido y mejorado aquï¿½",
+  "pedagogical_explanation": "Explicaciï¿½n teï¿½rica del concepto fallido, escrita para un estudiante universitario de Programaciï¿½n de Vanguardia"
 }
 
-Si el código no tiene problemas, devolvé issues como [] y explicá por qué el código es correcto y seguro.
+Si el cï¿½digo no tiene problemas, devolvï¿½ issues como [] y explicï¿½ por quï¿½ el cï¿½digo es correcto y seguro.
 """
 # ??????????????????????????????????????????????????????????????????????????????
 
 
 # ?? AGREGADO Vanesa: POST /analyze ????????????????????????????????????????????
-# Endpoint principal del TP. Recibe el código del editor Monaco y el lenguaje.
+# Endpoint principal del TP. Recibe el cï¿½digo del editor Monaco y el lenguaje.
 # Flujo: valida entrada ? llama a Groq ? parsea el JSON de la IA ?
-#        guarda en tabla auditorias ? devuelve el análisis completo al frontend.
-# Requiere token JWT válido: el usuario debe estar logueado para poder auditar.
+#        guarda en tabla auditorias ? devuelve el anï¿½lisis completo al frontend.
+# Requiere token JWT vï¿½lido: el usuario debe estar logueado para poder auditar.
 @app.post("/analyze", status_code=status.HTTP_200_OK)
 async def analyze_code(request: AnalyzeRequest, user_id: str = Depends(get_current_user)):
 
-    # Validar que el código no venga vacío
+    # Validar que el cï¿½digo no venga vacï¿½o
     if not request.code.strip():
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="El campo 'code' no puede estar vacío."
+            detail="El campo 'code' no puede estar vacï¿½o."
         )
 
     # Validar que el lenguaje sea uno de los soportados por la plataforma
@@ -600,11 +600,11 @@ async def analyze_code(request: AnalyzeRequest, user_id: str = Depends(get_curre
     if request.language.lower() not in supported_languages:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Lenguaje no soportado. Usá uno de: {supported_languages}"
+            detail=f"Lenguaje no soportado. Usï¿½ uno de: {supported_languages}"
         )
 
-    # Construimos el mensaje para la IA: lenguaje + código del usuario
-    user_message = f"Lenguaje: {request.language}\n\nCódigo a auditar:\n{request.code}"
+    # Construimos el mensaje para la IA: lenguaje + cï¿½digo del usuario
+    user_message = f"Lenguaje: {request.language}\n\nCï¿½digo a auditar:\n{request.code}"
 
     try:
         # Llamada a la API de Groq con el modelo Llama
@@ -638,10 +638,10 @@ async def analyze_code(request: AnalyzeRequest, user_id: str = Depends(get_curre
         analysis = json.loads(json_str)
   
     except json.JSONDecodeError:
-        # Si la IA devolvió algo que no es JSON válido, lo controlamos con un error claro
+        # Si la IA devolviï¿½ algo que no es JSON vï¿½lido, lo controlamos con un error claro
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
-            detail=f"El modelo de IA devolvi una respuesta invlida. Intent de nuevo. detalle:{str(analysis)}"
+            detail=f"El modelo de IA devolviï¿½ una respuesta invï¿½lida. Intentï¿½ de nuevo. detalle:{str(analysis)}"
         )
     except Exception as e:
         raise HTTPException(
@@ -649,7 +649,7 @@ async def analyze_code(request: AnalyzeRequest, user_id: str = Depends(get_curre
             detail=f"Error al contactar el servicio de IA: {str(e)}"
         )
 
-    # Guardamos el análisis en la tabla auditorias para el historial del usuario
+    # Guardamos el anï¿½lisis en la tabla auditorias para el historial del usuario
     now = datetime.now()
     fecha_actual = now.strftime("%Y-%m-%d")
     hora_actual  = now.strftime("%H:%M:%S")
@@ -666,7 +666,7 @@ async def analyze_code(request: AnalyzeRequest, user_id: str = Depends(get_curre
     conn.commit()
     conn.close()
 
-    # Devolvemos el análisis completo al frontend (Monaco Editor lo muestra en el panel derecho)
+    # Devolvemos el anï¿½lisis completo al frontend (Monaco Editor lo muestra en el panel derecho)
     return {
         "id":                      auditoria_id,
         "language":                request.language,
@@ -680,14 +680,14 @@ async def analyze_code(request: AnalyzeRequest, user_id: str = Depends(get_curre
 
 
 # ?? AGREGADO Vanesa: GET /historial ??????????????????????????????????????????
-# Devuelve la lista de todas las auditorías del usuario logueado.
-# Incluye: id, lenguaje, fecha, hora y un preview de los primeros 80 caracteres del código.
-# Usado por el frontend para mostrar la tabla de historial con el modal de auditorías.
+# Devuelve la lista de todas las auditorï¿½as del usuario logueado.
+# Incluye: id, lenguaje, fecha, hora y un preview de los primeros 80 caracteres del cï¿½digo.
+# Usado por el frontend para mostrar la tabla de historial con el modal de auditorï¿½as.
 @app.get("/historial", status_code=status.HTTP_200_OK)
 def get_historial(user_id: str = Depends(get_current_user)):
     conn = sqlite3.connect(db)
     c = conn.cursor()
-    # ORDER BY id DESC = los más recientes primero
+    # ORDER BY id DESC = los mï¿½s recientes primero
     c.execute(
         "SELECT id, language, fecha, hora, codigo FROM auditorias WHERE user_id = ? ORDER BY id DESC",
         (int(user_id),)
@@ -704,7 +704,7 @@ def get_historial(user_id: str = Depends(get_current_user)):
                 "language":       row[1],
                 "fecha":          row[2],
                 "hora":           row[3],
-                # Preview de 80 caracteres para mostrar en la tabla sin cargar todo el código
+                # Preview de 80 caracteres para mostrar en la tabla sin cargar todo el cï¿½digo
                 "codigo_preview": row[4][:80] + "..." if len(row[4]) > 80 else row[4]
             }
             for row in rows
@@ -714,9 +714,9 @@ def get_historial(user_id: str = Depends(get_current_user)):
 
 
 # ?? AGREGADO Vanesa: GET /historial/{auditoria_id} ???????????????????????????
-# Devuelve el detalle completo de una auditoría específica.
-# El usuario hace clic en un item del historial y ve el análisis entero.
-# Seguridad: la condición AND user_id = ? impide que un usuario vea datos de otro.
+# Devuelve el detalle completo de una auditorï¿½a especï¿½fica.
+# El usuario hace clic en un item del historial y ve el anï¿½lisis entero.
+# Seguridad: la condiciï¿½n AND user_id = ? impide que un usuario vea datos de otro.
 @app.get("/historial/{auditoria_id}", status_code=status.HTTP_200_OK)
 def get_auditoria_detalle(auditoria_id: int, user_id: str = Depends(get_current_user)):
     conn = sqlite3.connect(db)
@@ -729,7 +729,7 @@ def get_auditoria_detalle(auditoria_id: int, user_id: str = Depends(get_current_
     conn.close()
 
     if not row:
-        raise HTTPException(status_code=404, detail="Auditoría no encontrada o no pertenece al usuario.")
+        raise HTTPException(status_code=404, detail="Auditorï¿½a no encontrada o no pertenece al usuario.")
 
     # Convertimos el string JSON guardado en DB de vuelta a dict para devolverlo estructurado
     resultado = json.loads(row[3])
