@@ -80,14 +80,14 @@ def get_current_user(authorization: str = Header(...)):
     except JWTError:
         raise HTTPException(status_code=401, detail="Token invalido")
 
-    conn = sqlite3.connect(db)
-    c = conn.cursor()
-    c.execute("SELECT * FROM sesiones WHERE token = ?", (token,))
-    session = c.fetchone()
-    conn.close()
+    # conn = sqlite3.connect(db)
+    # c = conn.cursor()
+    # c.execute("SELECT * FROM sesiones WHERE token = ?", (token,))
+    # session = c.fetchone()
+    # conn.close()
 
-    if not session:
-        raise HTTPException(status_code=401, detail="Sesion invalida")
+    # if not session:
+    #     raise HTTPException(status_code=401, detail="Sesion invalida")
 
     return user_id
 
