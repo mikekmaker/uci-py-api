@@ -14,9 +14,9 @@ from argon2 import PasswordHasher
 import httpx
 from fastapi.responses import JSONResponse
 
-# ?? AGREGADO Vanesa: librer�as para integraci�n con IA y lectura de variables de entorno ??
+# ?? AGREGADO Vanesa: librerias para integracion con IA y lectura de variables de entorno ??
 # json: para parsear la respuesta JSON que devuelve la IA
-# os + dotenv: para leer la API Key desde el archivo .env sin hardcodearla en el c�digo
+# os + dotenv: para leer la API Key desde el archivo .env sin hardcodearla en el codigo
 import json
 import os
 from groq import Groq
