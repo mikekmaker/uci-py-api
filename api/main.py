@@ -94,7 +94,7 @@ def get_current_user(authorization: str = Header(...)):
 
 @app.get("/")
 async def read_root():
-    message = f"Ejercicios Programaci�n de Vanguardia con FastAPI corriendo en Uvicorn con Gunicorn. Using Python {version}"
+    message = f"Ejercicios Programacion de Vanguardia con FastAPI corriendo en Uvicorn con Gunicorn. Using Python {version}"
     return {"message": message}
 
 
@@ -110,7 +110,7 @@ class LoginRequest(BaseModel):
 
 # ?? AGREGADO Vanesa: modelo de datos para el endpoint /analyze ????????????????
 # Define la estructura del JSON que manda el frontend (editor Monaco)
-# code: el c�digo fuente a analizar
+# code: el codigo fuente a analizar
 # language: el lenguaje seleccionado en el dropdown del editor
 class AnalyzeRequest(BaseModel):
     code: str
@@ -142,9 +142,9 @@ def init_db():
     ''')
 
     # ?? AGREGADO Vanesa: tabla auditorias para guardar el historial por usuario ??
-    # Cada an�lisis queda registrado con: qui�n lo hizo, cu�ndo, qu� c�digo,
+    # Cada analisis queda registrado con: quien lo hizo, cuando, que codigo,
     # y el resultado completo de la IA guardado como JSON en el campo 'resultado'.
-    # As� el usuario puede ver su historial y volver a consultar an�lisis anteriores.
+    # Asi el usuario puede ver su historial y volver a consultar analisis anteriores.
     c.execute('''
         CREATE TABLE IF NOT EXISTS auditorias (
             id          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -230,51 +230,51 @@ def logout(authorization: str = Header(...)):
 # ?? AGREGADO Vanesa: prompt del sistema que define el comportamiento de la IA ??
 # Este texto se manda como "rol de sistema" en cada llamada a Groq.
 # Le dice a la IA que actue como Senior Developer auditor y que responda
-# �NICAMENTE con JSON puro, para que podamos parsearlo sin problemas.
+# UNICAMENTE con JSON puro, para que podamos parsearlo sin problemas.
 AUDIT_SYSTEM_PROMPT = """
-Sos un Senior Developer con 15 años de experiencia auditando codigo en empresas de tecnolog�a.
+Sos un Senior Developer con 15 años de experiencia auditando codigo en empresas de tecnologia.
 Tu tarea es analizar el fragmento de codigo que te envian e identificar problemas reales.
 
-Categor�as de severidad:
+Categorias de severidad:
 - CRITICO: vulnerabilidades de seguridad (SQL Injection, XSS, credenciales hardcodeadas, etc.)
-- ADVERTENCIA: errores de logica, malas practicas, codigo que puede fallar en producci�n
-- SUGERENCIA: oportunidades de refactorizaci�n, Clean Code, naming conventions
+- ADVERTENCIA: errores de logica, malas practicas, codigo que puede fallar en produccion
+- SUGERENCIA: oportunidades de refactorizacion, Clean Code, naming conventions
 
-REGLA IMPORTANTE: Respond� �NICAMENTE con un objeto JSON v�lido.
-Sin texto adicional, sin markdown, sin bloques de c�digo, sin explicaciones fuera del JSON.
+REGLA IMPORTANTE: Responde UNICAMENTE con un objeto JSON valido.
+Sin texto adicional, sin markdown, sin bloques de codigo, sin explicaciones fuera del JSON.
 
-Estructura exacta que deb�s devolver:
+Estructura exacta que debe devolver:
 {
   "issues": [
     {
       "severity": "CRITICO|ADVERTENCIA|SUGERENCIA",
       "type": "NOMBRE_CORTO_DEL_PROBLEMA",
-      "description": "Explicaci�n clara del problema encontrado",
+      "description": "Explicacion clara del problema encontrado",
       "line": 1
     }
   ],
-  "refactored_code": "El c�digo completo corregido y mejorado aqu�",
-  "pedagogical_explanation": "Explicaci�n te�rica del concepto fallido, escrita para un estudiante universitario de Programaci�n de Vanguardia"
+  "refactored_code": "El codigo completo corregido y mejorado aqui",
+  "pedagogical_explanation": "Explicacion teorica del concepto fallido, escrita para un estudiante universitario de Programacion de Vanguardia"
 }
 
-Si el c�digo no tiene problemas, devolv� issues como [] y explic� por qu� el c�digo es correcto y seguro.
+Si el codigo no tiene problemas, devolve issues como [] y explica por que el codigo es correcto y seguro.
 """
 # ??????????????????????????????????????????????????????????????????????????????
 
 
 # ?? AGREGADO Vanesa: POST /analyze ????????????????????????????????????????????
-# Endpoint principal del TP. Recibe el c�digo del editor Monaco y el lenguaje.
+# Endpoint principal del TP. Recibe el codigo del editor Monaco y el lenguaje.
 # Flujo: valida entrada ? llama a Groq ? parsea el JSON de la IA ?
-#        guarda en tabla auditorias ? devuelve el an�lisis completo al frontend.
-# Requiere token JWT v�lido: el usuario debe estar logueado para poder auditar.
+#        guarda en tabla auditorias ? devuelve el analisis completo al frontend.
+# Requiere token JWT valido: el usuario debe estar logueado para poder auditar.
 @app.post("/analyze", status_code=status.HTTP_200_OK)
 async def analyze_code(request: AnalyzeRequest, user_id: str = Depends(get_current_user)):
 
-    # Validar que el c�digo no venga vac�o
+    # Validar que el codigo no venga vacio
     if not request.code.strip():
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="El campo 'code' no puede estar vac�o."
+            detail="El campo 'code' no puede estar vacio."
         )
 
     # Validar que el lenguaje sea uno de los soportados por la plataforma
@@ -282,11 +282,11 @@ async def analyze_code(request: AnalyzeRequest, user_id: str = Depends(get_curre
     if request.language.lower() not in supported_languages:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Lenguaje no soportado. Us� uno de: {supported_languages}"
+            detail=f"Lenguaje no soportado. Usa uno de: {supported_languages}"
         )
 
-    # Construimos el mensaje para la IA: lenguaje + c�digo del usuario
-    user_message = f"Lenguaje: {request.language}\n\nC�digo a auditar:\n{request.code}"
+    # Construimos el mensaje para la IA: lenguaje + codigo del usuario
+    user_message = f"Lenguaje: {request.language}\n\nCodigo a auditar:\n{request.code}"
 
     try:
         # Llamada a la API de Groq con el modelo Llama
@@ -320,10 +320,10 @@ async def analyze_code(request: AnalyzeRequest, user_id: str = Depends(get_curre
         analysis = json.loads(json_str)
   
     except json.JSONDecodeError:
-        # Si la IA devolvi� algo que no es JSON v�lido, lo controlamos con un error claro
+        # Si la IA devolvio algo que no es JSON valido, lo controlamos con un error claro
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
-            detail=f"El modelo de IA devolvi� una respuesta inv�lida. Intent� de nuevo. detalle:{str(analysis)}"
+            detail=f"El modelo de IA devolvio una respuesta invalida. Intenta de nuevo. detalle:{str(analysis)}"
         )
     except Exception as e:
         raise HTTPException(
@@ -331,7 +331,7 @@ async def analyze_code(request: AnalyzeRequest, user_id: str = Depends(get_curre
             detail=f"Error al contactar el servicio de IA: {str(e)}"
         )
 
-    # Guardamos el an�lisis en la tabla auditorias para el historial del usuario
+    # Guardamos el analisis en la tabla auditorias para el historial del usuario
     now = datetime.now()
     fecha_actual = now.strftime("%Y-%m-%d")
     hora_actual  = now.strftime("%H:%M:%S")
@@ -348,7 +348,7 @@ async def analyze_code(request: AnalyzeRequest, user_id: str = Depends(get_curre
     conn.commit()
     conn.close()
 
-    # Devolvemos el an�lisis completo al frontend (Monaco Editor lo muestra en el panel derecho)
+    # Devolvemos el analisis completo al frontend (Monaco Editor lo muestra en el panel derecho)
     return {
         "id":                      auditoria_id,
         "language":                request.language,
@@ -362,14 +362,14 @@ async def analyze_code(request: AnalyzeRequest, user_id: str = Depends(get_curre
 
 
 # ?? AGREGADO Vanesa: GET /historial ??????????????????????????????????????????
-# Devuelve la lista de todas las auditor�as del usuario logueado.
-# Incluye: id, lenguaje, fecha, hora y un preview de los primeros 80 caracteres del c�digo.
-# Usado por el frontend para mostrar la tabla de historial con el modal de auditor�as.
+# Devuelve la lista de todas las auditorias del usuario logueado.
+# Incluye: id, lenguaje, fecha, hora y un preview de los primeros 80 caracteres del codigo.
+# Usado por el frontend para mostrar la tabla de historial con el modal de auditorias.
 @app.get("/historial", status_code=status.HTTP_200_OK)
 def get_historial(user_id: str = Depends(get_current_user)):
     conn = sqlite3.connect(db)
     c = conn.cursor()
-    # ORDER BY id DESC = los m�s recientes primero
+    # ORDER BY id DESC = los mas recientes primero
     c.execute(
         "SELECT id, language, fecha, hora, codigo FROM auditorias WHERE user_id = ? ORDER BY id DESC",
         (int(user_id),)
@@ -396,9 +396,9 @@ def get_historial(user_id: str = Depends(get_current_user)):
 
 
 # ?? AGREGADO Vanesa: GET /historial/{auditoria_id} ???????????????????????????
-# Devuelve el detalle completo de una auditor�a espec�fica.
-# El usuario hace clic en un item del historial y ve el an�lisis entero.
-# Seguridad: la condici�n AND user_id = ? impide que un usuario vea datos de otro.
+# Devuelve el detalle completo de una auditoria especifica.
+# El usuario hace clic en un item del historial y ve el analisis entero.
+# Seguridad: la condicion AND user_id = ? impide que un usuario vea datos de otro.
 @app.get("/historial/{auditoria_id}", status_code=status.HTTP_200_OK)
 def get_auditoria_detalle(auditoria_id: int, user_id: str = Depends(get_current_user)):
     conn = sqlite3.connect(db)
@@ -411,7 +411,7 @@ def get_auditoria_detalle(auditoria_id: int, user_id: str = Depends(get_current_
     conn.close()
 
     if not row:
-        raise HTTPException(status_code=404, detail="Auditor�a no encontrada o no pertenece al usuario.")
+        raise HTTPException(status_code=404, detail="Auditoria no encontrada o no pertenece al usuario.")
 
     # Convertimos el string JSON guardado en DB de vuelta a dict para devolverlo estructurado
     resultado = json.loads(row[3])
