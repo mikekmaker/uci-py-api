@@ -91,54 +91,12 @@ def get_current_user(authorization: str = Header(...)):
 
     return user_id
 
-def calcular_factorial(n: int) -> int:
-    if n < 0:
-        raise ValueError("El n�mero no puede ser negativo")
-    if n == 0 or n == 1:
-        return 1
-    resultado = 1
-    for i in range(2, n + 1):
-        resultado *= i
-    return resultado
-
-def suma_list_elems(lista, actual=0):
-    if actual >= len(lista):
-        return 0
-    return lista[actual] + suma_list_elems(lista, actual + 1)
-
 
 @app.get("/")
 async def read_root():
     message = f"Ejercicios Programaci�n de Vanguardia con FastAPI corriendo en Uvicorn con Gunicorn. Using Python {version}"
     return {"message": message}
 
-
-class Recordatorio(BaseModel):
-    titulo: str
-    descripcion: str
-    fecha: str
-    hora: str
-    fecha_pattern: ClassVar[re.Pattern] = re.compile(r"^\d{4}-\d{2}-\d{2}$")
-    hora_pattern: ClassVar[re.Pattern] = re.compile(r"^(?:[01]\d|2[0-3]):([0-5]\d)$")
-
-    @validator("fecha")
-    def validate_fecha(cls, v):
-        if not cls.fecha_pattern.match(v):
-            raise ValueError("Fecha invalida. Usa el formato YYYY-MM-DD.")
-        return v
-
-    @validator("hora")
-    def validate_hora(cls, v):
-        if not cls.hora_pattern.match(v):
-            raise ValueError("Hora invalida. Usa el formato HH:MM (24 horas).")
-        return v
-    
-class Reserva(BaseModel):
-    cancha_id: int
-    usuario_id: int
-    horario_id: int
-    descripcion: str
-    num_personas: int
 
 class RegisterRequest(BaseModel):
     nombre: str
@@ -182,25 +140,6 @@ def init_db():
         exp DATETIME
     )
     ''')
-    
-    c.execute('''
-              CREATE TABLE IF NOT EXISTS recordatorios
-              (id INTEGER PRIMARY KEY AUTOINCREMENT,
-              titulo TEXT,
-              descripcion TEXT,
-              fecha TEXT,
-              hora TEXT)
-              ''')
-    
-    c.execute('''
-              CREATE TABLE IF NOT EXISTS reservas
-              (reserva_id INTEGER PRIMARY KEY AUTOINCREMENT,
-              cancha_id INTEGER,
-              usuario_id INTEGER,
-              horario_id DATETIME,
-              descripcion TEXT,
-              num_personas INTEGER)
-              ''')
 
     # ?? AGREGADO Vanesa: tabla auditorias para guardar el historial por usuario ??
     # Cada an�lisis queda registrado con: qui�n lo hizo, cu�ndo, qu� c�digo,
@@ -225,263 +164,6 @@ def init_db():
 
 init_db()
 
-@app.post("/recordatorios",status_code=status.HTTP_201_CREATED)
-def create_recordatorio(recordatorio: Recordatorio,response:Response):
-    if not recordatorio.titulo.strip():
-        response.status_code = status.HTTP_400_BAD_REQUEST
-        return {"detail":"titulo","msg": "El campo 'titulo' no puede estar vacio."}      
-    elif not recordatorio.descripcion.strip():
-        response.status_code = status.HTTP_400_BAD_REQUEST
-        return {"detail":"descripcion","msg": "El campo 'descripcion' no puede estar vacio."}      
-    elif not recordatorio.fecha.strip():
-        response.status_code = status.HTTP_400_BAD_REQUEST
-        return {"detail":"fecha","msg": "El campo 'fecha' no puede estar vacio."}      
-    elif not recordatorio.hora.strip():
-        response.status_code = status.HTTP_400_BAD_REQUEST
-        return {"detail":"hora","msg": "El campo 'hora' no puede estar vacio."}      
-     
-    conn = sqlite3.connect(db)
-    c = conn.cursor()
-    c.execute("INSERT INTO recordatorios (titulo, descripcion, fecha, hora) VALUES (?, ?, ?, ?)",
-              (recordatorio.titulo, recordatorio.descripcion, recordatorio.fecha, recordatorio.hora))
-    conn.commit()
-    conn.close()
-    recordatorio_id = c.lastrowid
-    return {
-            "id": recordatorio_id,
-            "titulo": recordatorio.titulo,
-            "descripcion": recordatorio.descripcion,
-            "fecha": recordatorio.fecha,
-            "hora": recordatorio.hora
-    }
-
-@app.get("/recordatorios")
-async def get_recordatorios():
-    conn = sqlite3.connect(db)
-    c = conn.cursor()
-    c.execute("SELECT id, titulo, descripcion, fecha, hora FROM recordatorios")
-    rows = c.fetchall()
-    conn.close()
-    recordatorios = [{"id": row[0], "titulo": row[1], "descripcion": row[2], "fecha": row[3], "hora": row[4]} for row in rows]
-    return JSONResponse(recordatorios, status_code=status.HTTP_200_OK)
-
-@app.put("/recordatorios/{id}",status_code=status.HTTP_200_OK)
-def update_recordatorio(id: int, recordatorio: Recordatorio,response:Response):
-    conn = sqlite3.connect(db)
-    c = conn.cursor()
-    c.execute("SELECT * FROM recordatorios WHERE id = ?", (id,))
-    existing_recordatorio = c.fetchone()
-
-    if existing_recordatorio:
-        if not recordatorio.titulo.strip():
-            response.status_code = status.HTTP_400_BAD_REQUEST
-            return {"detail":"titulo","msg": "El campo 'titulo' no puede estar vacio."}   
-        elif not recordatorio.descripcion.strip():
-            response.status_code = status.HTTP_400_BAD_REQUEST
-            return {"detail":"descripcion","msg": "El campo 'descripcion' no puede estar vacio."}   
-        elif not recordatorio.fecha.strip():
-            response.status_code = status.HTTP_400_BAD_REQUEST
-            return {"detail":"fecha","msg": "El campo 'fecha' no puede estar vacio."}   
-        elif not recordatorio.hora.strip():
-            response.status_code = status.HTTP_400_BAD_REQUEST
-            return {"detail":"hora","msg": "El campo 'hora' no puede estar vacio."}   
-        
-        c.execute('''UPDATE recordatorios SET titulo = ?, descripcion = ?, fecha = ?, hora = ? WHERE id = ?''',
-                  (recordatorio.titulo, recordatorio.descripcion, recordatorio.fecha, recordatorio.hora, id))
-        conn.commit()
-        conn.close()
-        return {"id": id,"titulo": recordatorio.titulo,"descripcion": recordatorio.descripcion,"fecha": recordatorio.fecha,"hora": recordatorio.hora}
-    else:
-        conn.close()
-        raise HTTPException(status_code=404, detail="Recordatorio no encontrado")
-
-@app.delete("/recordatorios/{id}",status_code=status.HTTP_200_OK)
-def delete_recordatorio(id: int):
-    conn = sqlite3.connect(db)
-    c = conn.cursor()
-    c.execute("SELECT * FROM recordatorios WHERE id = ?", (id,))
-    existing_recordatorio = c.fetchone()
-
-    if existing_recordatorio:
-        c.execute("DELETE FROM recordatorios WHERE id = ?", (id,))
-        conn.commit()
-        conn.close()
-        return {"id": id,"titulo": existing_recordatorio[1],"descripcion": existing_recordatorio[2],"fecha": existing_recordatorio[3],"hora": existing_recordatorio[4]}
-    else:
-        conn.close()
-        raise HTTPException(status_code=404, detail="Recordatorio no encontrado")
-
-@app.post('/reservas',status_code=status.HTTP_201_CREATED)                    
-async def create_reserva(reserva: Reserva, response:Response):
-    if not isinstance(reserva.cancha_id, int) or reserva.cancha_id <= 0:
-        response.status_code = status.HTTP_400_BAD_REQUEST
-        return {"detail":"cancha","msg": "debe seleccionar una cancha valida"}
-    if not isinstance(reserva.usuario_id, int) or reserva.usuario_id <= 0:
-        response.status_code = status.HTTP_400_BAD_REQUEST
-        return {"detail":"usuario","msg": "debe seleccionar un usuario valida"}      
-    elif not isinstance(reserva.horario_id, int) or reserva.horario_id <= 0:
-        response.status_code = status.HTTP_400_BAD_REQUEST
-        return {"detail":"horario","msg": "debe seleccionar un horario valido"}      
-    elif not reserva.descripcion.strip():
-        response.status_code = status.HTTP_400_BAD_REQUEST
-        return {"detail":"descripcion","msg": "el campo 'descripcion' no debe estar vacio"}      
-    elif not isinstance(reserva.num_personas, int) or reserva.num_personas <= 0 or reserva.num_personas > 16:
-        response.status_code = status.HTTP_400_BAD_REQUEST         
-        return {"detail":"jugadores","msg": "debe haber al menos 1 jugador y hasta 16 jugadores"} 
-    
-    conn = sqlite3.connect(db)
-    c = conn.cursor()
-    c.execute("INSERT INTO reservas (cancha_id, usuario_id, horario_id, descripcion, num_personas) VALUES (?, ?, ?, ?, ?)",
-              (reserva.cancha_id, reserva.usuario_id, reserva.horario_id, reserva.descripcion, reserva.num_personas))
-    reserva_id = c.lastrowid
-    conn.commit()
-    conn.close()
-    return {"id": reserva_id,"cancha_id": reserva.cancha_id,"usuario_id": reserva.usuario_id,"horario_id": reserva.horario_id,"descripcion": reserva.descripcion,"num_personas": reserva.num_personas}
-
-@app.get('/reservas/{reserva_id}',status_code=status.HTTP_200_OK)
-async def get_reserva(reserva_id: int):
-    conn = sqlite3.connect(db)
-    c = conn.cursor()
-    c.execute("SELECT * FROM reservas WHERE reserva_id = ?", (reserva_id,))
-    reserva = c.fetchone()
-    conn.close()
-    if reserva:
-        return {"id": reserva[0],"cancha_id": reserva[1],"usuario_id": reserva[2],"horario_id": reserva[3],"descripcion": reserva[4],"num_personas": reserva[5]}
-    else:
-        raise HTTPException(status_code=404, detail="Reserva no encontrada")
-
-@app.get("/reservas",status_code=status.HTTP_200_OK)
-async def get_reservas():
-    conn = sqlite3.connect(db)
-    c = conn.cursor()
-    c.execute("SELECT reserva_id, cancha_id, usuario_id, horario_id, descripcion, num_personas FROM reservas")
-    rows = c.fetchall()
-    conn.close()
-    reservas_list = [{"reserva_id": row[0], "cancha_id": row[1],"usuario_id": row[2],"horario_id": row[3],"descripcion": row[4],"num_personas": row[5]} for row in rows]
-    return JSONResponse(reservas_list)
-   
-@app.put("/reservas/{reserva_id}",status_code=status.HTTP_200_OK)
-def update_reserva(reserva_id: int, reserva: Reserva,response:Response):
-    conn = sqlite3.connect(db)
-    c = conn.cursor()
-    c.execute("SELECT * FROM reservas WHERE reserva_id = ?", (reserva_id,))
-    existing_reserva = c.fetchone()
-    
-    if existing_reserva:
-        if not isinstance(reserva.cancha_id, int) or reserva.cancha_id <= 0:
-            response.status_code = status.HTTP_400_BAD_REQUEST
-            return {"detail":"cancha","msg": "debe seleccionar una cancha valida"}
-        elif not isinstance(reserva.usuario_id, int) or reserva.usuario_id <= 0:
-            response.status_code = status.HTTP_400_BAD_REQUEST
-            return {"detail":"usuario","msg": "debe seleccionar un usuario valida"}          
-        elif not isinstance(reserva.horario_id, int) or reserva.horario_id <= 0:
-            response.status_code = status.HTTP_400_BAD_REQUEST
-            return {"detail":"horario","msg": "debe seleccionar un horario valido"}      
-        elif not reserva.descripcion.strip():
-            response.status_code = status.HTTP_400_BAD_REQUEST
-            return {"detail":"descripcion","msg": "el campo 'descripcion' no debe estar vacio"}      
-        elif not isinstance(reserva.num_personas, int) or reserva.num_personas <= 0 or reserva.num_personas > 16:
-            response.status_code = status.HTTP_400_BAD_REQUEST
-            return {"detail":"jugadores","msg": "debe haber al menos 1 jugador y hasta 16 jugadores"} 
-
-        c.execute('''UPDATE reservas SET cancha_id = ?, usuario_id = ?, horario_id = ?, descripcion = ?, num_personas = ? WHERE reserva_id = ?''',
-                  (reserva.cancha_id, reserva.usuario_id, reserva.horario_id, reserva.descripcion, reserva.num_personas, reserva_id))
-        conn.commit()
-        conn.close()
-        return {"reserva_id": reserva_id,"cancha_id": reserva.cancha_id,"usuario_id": reserva.usuario_id,"horario_id": reserva.horario_id,"descripcion": reserva.descripcion,"num_personas": reserva.num_personas}
-    else:
-        conn.close()
-        raise HTTPException(status_code=404, detail="Reserva no encontrada")
-
-@app.delete("/reservas/{reserva_id}",status_code=status.HTTP_200_OK)
-def delete_reserva(reserva_id: int):
-    conn = sqlite3.connect(db)
-    c = conn.cursor()
-    c.execute("SELECT * FROM reservas WHERE reserva_id = ?", (reserva_id,))
-    existing_reserva = c.fetchone()
-    if existing_reserva:
-        c.execute("DELETE FROM reservas WHERE reserva_id = ?", (reserva_id,))
-        conn.commit()
-        conn.close()
-        return {"reserva_id": reserva_id,"cancha_id": existing_reserva[1],"usuario_id": existing_reserva[2],"horario_id": existing_reserva[3],"descripcion": existing_reserva[4],"num_personas": existing_reserva[5]}
-    else:
-        conn.close()
-        raise HTTPException(status_code=404, detail="Reserva no encontrada")
-    
-
-PREFIX = "https://db39-2800-40-16-31e-a468-6f93-336a-2045.ngrok-free.app"
-HORARIOS_API_URL = "/api/horarios"
-CANCHAS_API_URL = "/api/canchas"
-USUARIOS_API_URL = "/api/usuarios"
-
-@app.get("/horariosreservas/{horario_id}/reserva/{reserva_id}")
-@app.get("/horariosreservas/{horario_id}")
-@app.get("/horariosreservas")
-async def get_horario_reserva(horario_id: Optional[int] = None, reserva_id: Optional[int] = None):
-    headers = {'Content-Type': 'application/json','Accept': 'application/json'}
-    async with httpx.AsyncClient() as client:
-        full_route = "{}{}".format(PREFIX, HORARIOS_API_URL)
-        horarios_response = await client.get(full_route)
-        if horarios_response.status_code == 200:
-            horarios = horarios_response.json()
-        else:
-            raise HTTPException(status_code=404)
-        
-        full_route = "{}{}".format(PREFIX, CANCHAS_API_URL)
-        canchas_response = await client.get(full_route)
-        if canchas_response.status_code == 200:
-            canchas = canchas_response.json()
-        else:
-            raise HTTPException(status_code=404)
-        
-        full_route = "{}{}".format(PREFIX, USUARIOS_API_URL)
-        usuarios_response = await client.get(full_route, headers=headers)
-        if usuarios_response.status_code == 200:
-            usuarios = usuarios_response.json()
-        else:
-            raise HTTPException(status_code=404)
-
-    conn = sqlite3.connect(db)
-    c = conn.cursor()
-    c.execute("SELECT reserva_id, cancha_id, usuario_id, horario_id, descripcion, num_personas FROM reservas")
-    reservas = c.fetchall()
-    conn.close()
-    reservas = [{"reserva_id":row[0], "cancha_id": row[1], "usuario_id": row[2], "horario_id": row[3], "descripcion": row[4], "num_personas": row[5]} for row in reservas]
-    cancha_map = {cancha['cancha_id']: cancha for cancha in canchas}
-    usuario_map = {usuario['id']: {'usuario_id': usuario['id'],'nombre': usuario['nombre'], 'apellido': usuario['apellido']} for usuario in usuarios}
-    horarioreserva_array = []
-    for horario in horarios:
-        if horario_id is not None and horario['horario_id'] != horario_id:
-            continue
-        horarioreserva = {"horario_id": horario['horario_id'],"fecha": horario['fecha'],"hora": horario['hora'],"reserva": None}
-        for reserva in reservas:
-            if reserva_id is not None and reserva['reserva_id'] != reserva_id:
-                continue
-            if reserva['horario_id'] == horario['horario_id']:
-                cancha = cancha_map.get(reserva['cancha_id'], {})
-                usuario = usuario_map.get(reserva['usuario_id'], {})
-                horarioreserva['reserva'] = {"reserva_id": reserva['reserva_id'],"descripcion": reserva['descripcion'],"num_personas": reserva['num_personas'],"cancha": cancha,"usuario": usuario}
-                break
-        horarioreserva_array.append(horarioreserva)
-    if horario_id is not None and not horarioreserva_array:
-        raise HTTPException(status_code=404, detail="Horario no encontrado")
-    return JSONResponse(content=horarioreserva_array)
-
-@app.get('/ejercicios/factorial/{num}',status_code=status.HTTP_200_OK)
-async def factorial(num: int):
-    try:
-        resultado = calcular_factorial(num)
-        return {"numero": num,"factorial": resultado}
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-
-@app.get('/ejercicios/sumlist',status_code=status.HTTP_200_OK)
-async def sumlist(lista: List[int] = Query(...)):
-    try:
-        resultado = suma_list_elems(lista, 0)
-        return {"lista":lista,"sumados": resultado}
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
 
 @app.post("/Register",status_code=status.HTTP_201_CREATED)
 def register(user: RegisterRequest):
@@ -538,24 +220,24 @@ def logout(authorization: str = Header(...)):
 
 
 # ??????????????????????????????????????????????????????????????????????????????
-# AGREGADO Vanesa � Endpoints de Auditor�a de C�digo con IA
+# AGREGADO Vanesa  Endpoints de Auditoria de Codigo con IA
 # Rama: f-analizar
-# Descripci�n: recibe c�digo del editor Monaco, lo analiza con Groq (Llama),
+# Descripcion: recibe codigo del editor Monaco, lo analiza con Groq (Llama),
 #              guarda el resultado en la tabla auditorias y expone un historial
 #              por usuario identificado con id, lenguaje, fecha y hora.
 # ??????????????????????????????????????????????????????????????????????????????
 
 # ?? AGREGADO Vanesa: prompt del sistema que define el comportamiento de la IA ??
 # Este texto se manda como "rol de sistema" en cada llamada a Groq.
-# Le dice a la IA que act�e como Senior Developer auditor y que responda
+# Le dice a la IA que actue como Senior Developer auditor y que responda
 # �NICAMENTE con JSON puro, para que podamos parsearlo sin problemas.
 AUDIT_SYSTEM_PROMPT = """
-Sos un Senior Developer con 15 a�os de experiencia auditando c�digo en empresas de tecnolog�a.
-Tu tarea es analizar el fragmento de c�digo que te env�an e identificar problemas reales.
+Sos un Senior Developer con 15 años de experiencia auditando codigo en empresas de tecnolog�a.
+Tu tarea es analizar el fragmento de codigo que te envian e identificar problemas reales.
 
 Categor�as de severidad:
 - CRITICO: vulnerabilidades de seguridad (SQL Injection, XSS, credenciales hardcodeadas, etc.)
-- ADVERTENCIA: errores de l�gica, malas pr�cticas, c�digo que puede fallar en producci�n
+- ADVERTENCIA: errores de logica, malas practicas, codigo que puede fallar en producci�n
 - SUGERENCIA: oportunidades de refactorizaci�n, Clean Code, naming conventions
 
 REGLA IMPORTANTE: Respond� �NICAMENTE con un objeto JSON v�lido.
