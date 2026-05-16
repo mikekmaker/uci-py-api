@@ -72,6 +72,10 @@ def create_token(data: dict):
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM), expire
 
+
+# Middleware de autenticación: extrae y valida el token JWT del header.
+# Verifica además que la sesión esté activa en la base de datos.
+# Todas las rutas protegidas usan esta función con Depends()
 def get_current_user(authorization: str = Header(...)):
     try:
         token = authorization.replace("Bearer ", "")
