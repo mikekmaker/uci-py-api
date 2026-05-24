@@ -1,186 +1,248 @@
-# uci-py-api
-API python para tp de la universidad de la ciudad
+# &#x20;UCI-PY-API ‚Äî Plataforma de Auditor√≠a de C√≥digo con IA
 
-1. OBJETIVO ARQUITECT”NICO
-Este microservicio Python tiene como responsabilidad central realizar el procesamiento inteligente de auditorÌa de cÛdigo fuente recibido desde el BFF Orquestador Java, delegando el an·lisis especializado a un motor externo de IA denominado IAEngine.
-Su propÛsito NO es persistir informaciÛn ni gestionar autenticaciÛn de usuarios, sino actuar como un servicio especializado de an·lisis, normalizaciÛn y enriquecimiento de resultados tÈcnicos.
-Se define como un microservicio stateless, desacoplado y orientado a integraciÛn sÌncrona HTTP.
-? PRINCIPIO ARQUITECT”NICO CLAVE
-Este servicio NO maneja estado, NO persiste datos y NO gestiona usuarios.
-Es una capa de procesamiento puro entre el orquestador y el motor IA.
+> Microservicio Python de an√°lisis est√°tico de c√≥digo potenciado por Inteligencia Artificial.  
+> Trabajo Pr√°ctico ‚Äî Programaci√≥n de Vanguardia 2026 | Universidad de la Ciudad de Buenos Aires
 
-2. RESPONSABILIDAD GENERAL DEL SERVICIO
-Atributo	Valor
-Nombre del Servicio	Code Review AI Service
-Endpoint Principal	POST /analyze
-Responsabilidad Principal	Recibir cÛdigo desde Java, enviarlo al motor IA, procesar respuesta y retornar JSON normalizado con hallazgos clasificados por severidad
+\---
 
-3. DISE—O POR CAPAS
-El servicio Python sigue una arquitectura en capas clara y desacoplada:
+## ¬øQu√© es este proyecto?
+
+UCI-PY-API es el microservicio de inferencia y an√°lisis de una plataforma de auditor√≠a de c√≥digo basada en arquitectura de microservicios. Recibe fragmentos de c√≥digo fuente, los analiza utilizando un modelo de lenguaje de gran escala (LLM) y devuelve un informe estructurado con:
+
+* üî¥ **Vulnerabilidades de seguridad** (SQL Injection, XSS, credenciales hardcodeadas, etc.)
+* üü° **Errores de l√≥gica y malas pr√°cticas** de programaci√≥n
+* üîµ **Sugerencias de refactorizaci√≥n** bajo principios de Clean Code
+* üìö **Explicaci√≥n pedag√≥gica** del concepto te√≥rico fallido
+* ‚ú® **C√≥digo corregido** listo para usar
+
+A diferencia de un linter tradicional basado en reglas fijas, la plataforma utiliza un LLM que razona contextualmente sobre el c√≥digo, explicando *por qu√©* algo est√° mal y c√≥mo mejorarlo.
+
+\---
+
+## 
+
+## üèóÔ∏è Arquitectura del sistema
+
+```
+Frontend (Monaco Editor)
+        ‚îÇ
+        ‚îÇ HTTP + JWT
+        ‚ñº
+Backend Java (Spring Boot)  ‚Üê‚îÄ‚îÄ  Gesti√≥n de usuarios + BD relacional
+        ‚îÇ
+        ‚îÇ HTTP
+        ‚ñº
+Backend Python (FastAPI)    ‚Üê‚îÄ‚îÄ  Este repositorio
+        ‚îÇ
+        ‚îÇ API Key
+        ‚ñº
+Groq API (Llama 3.3 70B)   ‚Üê‚îÄ‚îÄ  Modelo de IA open-source
+```
+
+\---
+
+## 
+
+## Stack tecnol√≥gico
+
+|Componente|Tecnolog√≠a|
+|-|-|
+|Framework API|FastAPI 0.136|
+|Servidor|Uvicorn + Gunicorn|
+|Modelo de IA|Llama 3.3 70B (Meta, open-source)|
+|Plataforma IA|Groq API|
+|Base de datos|SQLite|
+|Autenticaci√≥n|JWT (python-jose)|
+|Hash de contrase√±as|Argon2|
+|Lenguaje|Python 3.10+|
+|Deploy|Render|
+
+\---
+
+## 
+
+## Endpoints disponibles
+
+### Autenticaci√≥n
+
+|M√©todo|Ruta|Descripci√≥n|
+|-|-|-|
+|`POST`|`/Register`|Registro de nuevo usuario|
+|`POST`|`/Login`|Login ‚Äî devuelve JWT token|
+|`GET`|`/me`|Datos del usuario autenticado|
+|`POST`|`/Logout`|Cierra la sesi√≥n activa|
+
+### Auditor√≠a de C√≥digo con IA 
+
+|M√©todo|Ruta|Descripci√≥n|
+|-|-|-|
+|`POST`|`/analyze`|Analiza c√≥digo con IA y guarda el resultado|
+|`GET`|`/historial`|Lista el historial de auditor√≠as del usuario|
+|`GET`|`/historial/{id}`|Detalle completo de una auditor√≠a espec√≠fica|
+
+### Otros
+
+|M√©todo|Ruta|Descripci√≥n|
+|-|-|-|
+|`GET`|`/recordatorios`|CRUD de recordatorios|
+|`POST`|`/reservas`|CRUD de reservas de canchas|
+|`GET`|`/ejercicios/factorial/{n}`|C√°lculo de factorial|
+|`GET`|`/ejercicios/sumlist`|Suma recursiva de lista|
+
+\---
+
+## 
+
+## Instalaci√≥n y ejecuci√≥n local
+
+### 
+
+### Requisitos previos
+
+* Python 3.10 o superior
+* API Key gratuita de [Groq](https://console.groq.com) (sin tarjeta de cr√©dito)
+
+### 
+
+### Pasos
 
 
 
+**1. Clonar el repositorio**
 
+```bash
+git clone https://github.com/mikekmaker/uci-py-api.git
+cd uci-py-api
+```
 
-3.1 Controller Layer
-Componente: CodeReviewController
-Responsabilidades:
-    ï Exponer endpoint REST /analyze
-    ï Validar request de entrada y metadata obligatoria
-    ï Gestionar errores de capa superior
-    ï Delegar lÛgica a PythonIAService
-    ï Retornar respuesta normalizada
-    ï Agregar trazabilidad (correlation-id)
-3.2 Service Layer
-Componente: PythonIAService
-Responsabilidades:
-    ï Orquestar el flujo de an·lisis
-    ï Aplicar reglas de negocio
-    ï Invocar IAEngineClient
-    ï Normalizar respuesta externa
-    ï Clasificar severidad y estandarizar findings
-    ï Gestionar errores funcionales
-    ï Aplicar retry controlado
-3.3 Integration Layer
-Componente: IAEngineClient
-Responsabilidades:
-    ï ComunicaciÛn HTTP con IAEngine
-    ï SerializaciÛn/deserializaciÛn
-    ï Manejo de timeout
-    ï Retry tÈcnico
-    ï Circuit breaker
-    ï GestiÛn de headers tÈcnicos
-    ï Seguridad de integraciÛn
+**2. Crear y activar entorno virtual**
 
-3.4 DTO Layer
-Componentes:
-DTO	PropÛsito
-AnalyzeCodeRequest	Request de entrada
-AnalyzeCodeResponse	Response normalizada
-FindingDTO	Hallazgo individual
-ErrorResponse	Response de error
-3.5 Domain Model Layer
-Componentes:
-Modelo	PropÛsito
-ReviewResult	Resultado completo del an·lisis
-SecurityFinding	Hallazgo de seguridad
-SeverityLevel	Nivel de severidad
-Recommendation	RecomendaciÛn tÈcnica
-TechnicalRisk	Riesgo tÈcnico identificado
+```bash
+python -m venv venv
 
-4. ENDPOINT REST
-POST /analyze
-Headers Requeridos:
-Header	Valor
-Authorization	Bearer <internal-token>
-X-Correlation-Id	UUID
-X-Request-Source	JAVA-BFF
+# Windows
+venv\\Scripts\\activate
 
-5. EJEMPLO DE REQUEST
-{
-  "language": "java",
-  "code": "public class PaymentProcessor {...}"
-  "analysis_type": "FullReview"
-}
+# Mac / Linux
+source venv/bin/activate
+```
 
-6. EJEMPLO DE RESPONSE
+**3. Instalar dependencias**
+
+```bash
+cd api
+pip install -r requirements.txt
+```
+
+**4. Configurar variables de entorno**
+
+Crear un archivo `.env` dentro de la carpeta `api/`:
+
+```
+GROQ\_API\_KEY=gsk\_tu\_api\_key\_aqui
+```
+
+>  Consegu√≠ tu API Key gratis en \[console.groq.com](https://console.groq.com) ‚Äî no requiere tarjeta de cr√©dito.
+
+**5. Ejecutar el servidor**
+
+```bash
+uvicorn main:app --reload --port 8181
+```
+
+**6. Acceder a la documentaci√≥n interactiva**
+
+Abr√≠ en el navegador: [http://localhost:8181/docs](http://localhost:8181/docs)
+
+\---
+
+## 
+
+## Ejemplo de uso ‚Äî Auditor√≠a con IA
+
+**Request:**
+
+```bash
+curl -X POST http://localhost:8181/analyze \\
+  -H "Content-Type: application/json" \\
+  -H "authorization: Bearer TU\_TOKEN\_JWT" \\
+  -d '{"code": "query = SELECT \* FROM users WHERE id = + user\_input", "language": "python"}'
+```
+
+**Response:**
+
+```json
 {
   "id": 1,
-  "language": "java",
-  "fecha": "2026-05-01",
-  "hora": "21:05:19",
-  "issues": [
+  "language": "python",
+  "fecha": "2026-04-29",
+  "hora": "19:46:42",
+  "issues": \[
     {
       "severity": "CRITICO",
-      "type": "SQL_INJECTION",
-      "description": "Aunque se utiliza PreparedStatement...",
-      "line": 15
-    },
-    {
-      "severity": "ADVERTENCIA",
-      "type": "MANEJO_DE_EXCEPCIONES",
-      "description": "El cÛdigo no maneja adecuadamente...",
-      "line": 10
-    },
-    {
-      "severity": "SUGERENCIA",
-      "type": "NOMBRE_DE_VARIABLES",
-      "description": "Los nombres de variables...",
-      "line": 5
+      "type": "SQL\_INJECTION",
+      "description": "El c√≥digo concatena directamente la entrada del usuario en la query SQL.",
+      "line": 1
     }
   ],
-  "refactored_code": "public class LoginSeguro { ... }",
-  "pedagogical_explanation": "La seguridad en autenticaciÛn..."
+  "refactored\_code": "query = 'SELECT \* FROM users WHERE id = %s'\\ncursor.execute(query, (user\_input,))",
+  "pedagogical\_explanation": "La inyecci√≥n SQL ocurre cuando se concatena input del usuario directamente en una consulta..."
 }
+```
 
-7. MANEJO DE ERRORES
-CÛdigo HTTP	DescripciÛn
-400	Bad Request - Request inv·lido o falta informaciÛn requerida
-401	Unauthorized - Token inv·lido o ausente
-503	Service Unavailable - Motor IA no disponible
-500	Internal Server Error - Error inesperado del servidor
+\---
 
-8. RESILIENCIA
-Mecanismo	ConfiguraciÛn
-Timeout	Timeout estricto: 3s a 8s m·ximo
-Retry	Retry controlado solo para 502/503/504
-Circuit Breaker	Circuit Breaker recomendado para protecciÛn
-Fallback	Fallback controlado si el negocio lo permite
+## &#x20;
 
-9. SEGURIDAD
-    ï Bearer Token interno: AutenticaciÛn mediante token compartido entre servicios
-    ï mTLS + JWT interno firmado: OpciÛn robusta para comunicaciÛn inter-servicios
-    ï Whitelist de origen: Solo aceptar requests desde fuentes autorizadas
-    ï Rate limiting interno: ProtecciÛn contra sobrecarga de requests
-    ï Payload size limit: LÌmite en el tamaÒo de cÛdigo enviado para an·lisis
-10. OBSERVABILIDAD
-    ï Logging estructurado JSON: Logs en formato JSON para f·cil indexaciÛn
-    ï OnRender Metrics: MÈtricas de rendimiento y uso
-    ï OpenTelemetry Tracing: Trazabilidad distribuida de requests
-11. ESCALABILIDAD
-    ï Stateless: Sin estado compartido entre instancias
-    ï Docker opcional: ContenedorizaciÛn para portabilidad
-    ï Kubernetes friendly: DiseÒado para orquestaciÛn en K8s
-    ï Async HTTP Client recomendado: httpx para operaciones no bloqueantes
+## Deploy
 
-12. RECOMENDACIONES T…CNICAS
-Framework recomendado: FastAPI
-LibrerÌas sugeridas:
-LibrerÌa	PropÛsito
-FastAPI	Framework web moderno y r·pido
-Pydantic	ValidaciÛn de datos y DTOs
-httpx	Cliente HTTP asÌncrono
-tenacity	Retry y resiliencia
-structlog	Logging estructurado
-prometheus-client	MÈtricas de OnRender
-OpenTelemetry	Tracing distribuido
-uvicorn	Servidor ASGI
-gunicorn	Process manager para producciÛn
+La API est√° desplegada en Render:
 
-13. ESTRUCTURA 
-app/
-??? api/controllers/
-??? services/
-??? clients/
-??? dto/
-??? domain/
-??? core/
-??? observability/
-??? tests/
-??? main.py
-??? requirements.txt
+üîó [**https://uci-py-api.onrender.com/docs**](https://uci-py-api.onrender.com/docs)
 
-14. CONCLUSI”N
-Este servicio Python debe mantenerse pequeÒo, especializado, stateless y altamente observable.
-Su responsabilidad principal es ser una capa robusta y confiable entre el orquestador Java y el motor externo de IA.
-Principios arquitectÛnicos clave:
-    ï SeparaciÛn de responsabilidades: Controller, Service, Integration claramente definidos
-    ï Resiliencia: Timeout, retry y circuit breaker configurados
-    ï Seguridad: AutenticaciÛn robusta entre servicios
-    ï Observabilidad: Logging, mÈtricas y tracing completos
-    ï Escalabilidad: DiseÒo stateless preparado para orquestaciÛn
-RECORDATORIO FINAL
-Este microservicio NO persiste informaciÛn
-NO gestiona usuarios
-NO mantiene estado
-Es una capa de procesamiento especializado en an·lisis de cÛdigo
+\---
+
+## 
+
+## üìÅ Estructura del proyecto
+
+```
+uci-py-api/
+‚îú‚îÄ‚îÄ api/
+‚îÇ   ‚îú‚îÄ‚îÄ main.py          # Aplicaci√≥n principal FastAPI
+‚îÇ   ‚îú‚îÄ‚îÄ requirements.txt # Dependencias del proyecto
+‚îÇ   ‚îú‚îÄ‚îÄ .env.example     # Ejemplo de variables de entorno
+‚îÇ   ‚îî‚îÄ‚îÄ AuditCode.db     # Base de datos SQLite (generada autom√°ticamente)
+‚îú‚îÄ‚îÄ README.md
+‚îî‚îÄ‚îÄ .gitignore
+```
+
+\---
+
+## 
+
+## &#x20;Equipo
+
+|Integrante|Rol|
+|-|-|
+|Miguel|Frontend (React + Monaco Editor)|
+|Julieta|Backend Java (Spring Boot)|
+|Fernando|Backend Java (Spring Boot)|
+|Diego|Backend Python + README|
+|Vanesa|Backend Python + Microservicio IA + README|
+
+\---
+
+## 
+
+## Seguridad
+
+* Las API Keys nunca se hardcodean en el c√≥digo ‚Äî se leen desde variables de entorno
+* El archivo `.env` est√° excluido del repositorio via `.gitignore`
+* Autenticaci√≥n con JWT en todos los endpoints protegidos
+* Control de acceso por recurso: cada usuario solo puede ver sus propias auditor√≠as
+
+\---
+
+*Programaci√≥n de Vanguardia 2026 ‚Äî Licenciatura en Tecnolog√≠as Inform√°ticas ‚Äî Universidad de la Ciudad de Buenos Aires*
+

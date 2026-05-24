@@ -14,14 +14,14 @@ from argon2 import PasswordHasher
 import httpx
 from fastapi.responses import JSONResponse
 
-# ?? AGREGADO Vanesa: librerias para integracion con IA y lectura de variables de entorno ??
+# ── AGREGADO Vanesa: librerías para integración con IA y lectura de variables de entorno ──
 # json: para parsear la respuesta JSON que devuelve la IA
-# os + dotenv: para leer la API Key desde el archivo .env sin hardcodearla en el codigo
+# os + dotenv: para leer la API Key desde el archivo .env sin hardcodearla en el código
 import json
 import os
 from groq import Groq
 from dotenv import load_dotenv
-# ??????????????????????????????????????????????????????????????????????????????????????????
+# ──────────────────────────────────────────────────────────────────────────────────────────
 
 #configuracion para session de usuarios
 SECRET_KEY = os.getenv("super_secret_key")
@@ -29,15 +29,15 @@ ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 1000 * 60 * 60 * 24
 #fin configuracion para session de usuarios
 
-# ?? AGREGADO Vanesa: inicializacion del cliente de Groq (IA) ??????????????????????????????
+# ── AGREGADO Vanesa: inicialización del cliente de Groq (IA) ──────────────────────────────
 # load_dotenv() lee el archivo .env y carga las variables de entorno
 # GROQ_API_KEY es la clave secreta para usar la API de Groq (modelo Llama)
 # groq_client es el objeto que usamos para hacer llamadas a la IA
 load_dotenv()
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 groq_client = Groq(api_key=GROQ_API_KEY)
-GROQ_MODEL = "llama-3.3-70b-versatile"  # Modelo gratuito, muy bueno para analisis de codigo
-# ??????????????????????????????????????????????????????????????????????????????????????????
+GROQ_MODEL = "llama-3.3-70b-versatile"  # Modelo gratuito, muy bueno para análisis de código
+# ──────────────────────────────────────────────────────────────────────────────────────────
 
 #base de datos
 db ="AuditCode.db"
@@ -72,6 +72,10 @@ def create_token(data: dict):
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM), expire
 
+
+# Middleware de autenticación: extrae y valida el token JWT del header.
+# Verifica además que la sesión esté activa en la base de datos.
+# Todas las rutas protegidas usan esta función con Depends()
 def get_current_user(authorization: str = Header(...)):
     try:
         token = authorization.replace("Bearer ", "")
@@ -108,14 +112,14 @@ class LoginRequest(BaseModel):
     username: str
     password: str
 
-# ?? AGREGADO Vanesa: modelo de datos para el endpoint /analyze ????????????????
+# ── AGREGADO Vanesa: modelo de datos para el endpoint /analyze ────────────────
 # Define la estructura del JSON que manda el frontend (editor Monaco)
-# code: el codigo fuente a analizar
+# code: el código fuente a analizar
 # language: el lenguaje seleccionado en el dropdown del editor
 class AnalyzeRequest(BaseModel):
     code: str
     language: str  # python | java | kotlin | javascript | typescript | sql
-# ??????????????????????????????????????????????????????????????????????????????
+# ──────────────────────────────────────────────────────────────────────────────
 
 
 def init_db():
@@ -146,6 +150,29 @@ def init_db():
     # y el resultado completo de la IA guardado como JSON en el campo 'resultado'.
     # Asi el usuario puede ver su historial y volver a consultar analisis anteriores.
     c.execute('''
+              CREATE TABLE IF NOT EXISTS recordatorios
+              (id INTEGER PRIMARY KEY AUTOINCREMENT,
+              titulo TEXT,
+              descripcion TEXT,
+              fecha TEXT,
+              hora TEXT)
+              ''')
+    
+    c.execute('''
+              CREATE TABLE IF NOT EXISTS reservas
+              (reserva_id INTEGER PRIMARY KEY AUTOINCREMENT,
+              cancha_id INTEGER,
+              usuario_id INTEGER,
+              horario_id DATETIME,
+              descripcion TEXT,
+              num_personas INTEGER)
+              ''')
+
+    # ── AGREGADO Vanesa: tabla auditorias para guardar el historial por usuario ──
+    # Cada análisis queda registrado con: quién lo hizo, cuándo, qué código,
+    # y el resultado completo de la IA guardado como JSON en el campo 'resultado'.
+    # Así el usuario puede ver su historial y volver a consultar análisis anteriores.
+    c.execute('''
         CREATE TABLE IF NOT EXISTS auditorias (
             id          INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id     INTEGER NOT NULL,
@@ -157,7 +184,7 @@ def init_db():
             FOREIGN KEY (user_id) REFERENCES usuarios(id)
         )
     ''')
-    # ??????????????????????????????????????????????????????????????????????????????
+    # ──────────────────────────────────────────────────────────────────────────────
 
     conn.commit()
     conn.close()  
@@ -338,6 +365,9 @@ async def analyze_code(request: AnalyzeRequest, user_id: str = Depends(get_curre
     # El resultado de la IA lo guardamos como string JSON en la columna 'resultado'
     resultado_json = json.dumps(analysis, ensure_ascii=False)
 
+# Ruta para eliminar una reserva por ID
+@app.delete("/reservas/{reserva_id}",status_code=status.HTTP_200_OK)
+def delete_reserva(reserva_id: int):
     conn = sqlite3.connect(db)
     c = conn.cursor()
     c.execute(
@@ -416,6 +446,7 @@ def get_auditoria_detalle(auditoria_id: int, user_id: str = Depends(get_current_
     # Convertimos el string JSON guardado en DB de vuelta a dict para devolverlo estructurado
     resultado = json.loads(row[3])
 
+    # Devolvemos el análisis completo al frontend (Monaco Editor lo muestra en el panel derecho)
     return {
         "id":                      row[0],
         "language":                row[1],
@@ -426,9 +457,77 @@ def get_auditoria_detalle(auditoria_id: int, user_id: str = Depends(get_current_
         "refactored_code":         resultado.get("refactored_code", ""),
         "pedagogical_explanation": resultado.get("pedagogical_explanation", "")
     }
-# ??????????????????????????????????????????????????????????????????????????????
+# ──────────────────────────────────────────────────────────────────────────────
+
+
+# ── AGREGADO Vanesa: GET /historial ──────────────────────────────────────────
+# Devuelve la lista de todas las auditorías del usuario logueado.
+# Incluye: id, lenguaje, fecha, hora y un preview de los primeros 80 caracteres del código.
+# Usado por el frontend para mostrar la tabla de historial con el modal de auditorías.
+@app.get("/historial", status_code=status.HTTP_200_OK)
+def get_historial(user_id: str = Depends(get_current_user)):
+    conn = sqlite3.connect(db)
+    c = conn.cursor()
+    # ORDER BY id DESC = los más recientes primero
+    c.execute(
+        "SELECT id, language, fecha, hora, codigo FROM auditorias WHERE user_id = ? ORDER BY id DESC",
+        (int(user_id),)
+    )
+    rows = c.fetchall()
+    conn.close()
+
+    return {
+        "user_id": user_id,
+        "total":   len(rows),
+        "historial": [
+            {
+                "id":             row[0],
+                "language":       row[1],
+                "fecha":          row[2],
+                "hora":           row[3],
+                # Preview de 80 caracteres para mostrar en la tabla sin cargar todo el código
+                "codigo_preview": row[4][:80] + "..." if len(row[4]) > 80 else row[4]
+            }
+            for row in rows
+        ]
+    }
+# ──────────────────────────────────────────────────────────────────────────────
+
+
+# ── AGREGADO Vanesa: GET /historial/{auditoria_id} ───────────────────────────
+# Devuelve el detalle completo de una auditoría específica.
+# El usuario hace clic en un item del historial y ve el análisis entero.
+# Seguridad: la condición AND user_id = ? impide que un usuario vea datos de otro.
+@app.get("/historial/{auditoria_id}", status_code=status.HTTP_200_OK)
+def get_auditoria_detalle(auditoria_id: int, user_id: str = Depends(get_current_user)):
+    conn = sqlite3.connect(db)
+    c = conn.cursor()
+    c.execute(
+        "SELECT id, language, codigo, resultado, fecha, hora FROM auditorias WHERE id = ? AND user_id = ?",
+        (auditoria_id, int(user_id))
+    )
+    row = c.fetchone()
+    conn.close()
+
+    if not row:
+        raise HTTPException(status_code=404, detail="Auditoría no encontrada o no pertenece al usuario.")
+
+    # Convertimos el string JSON guardado en DB de vuelta a dict para devolverlo estructurado
+    resultado = json.loads(row[3])
+
+    return {
+        "id":                      row[0],
+        "language":                row[1],
+        "codigo":                  row[2],
+        "fecha":                   row[4],
+        "hora":                    row[5],
+        "issues":                  resultado.get("issues", []),
+        "refactored_code":         resultado.get("refactored_code", ""),
+        "pedagogical_explanation": resultado.get("pedagogical_explanation", "")
+    }
+# ══════════════════════════════════════════════════════════════════════════════
 # FIN AGREGADO Vanesa
-# ??????????????????????????????????????????????????????????????????????????????
+# ══════════════════════════════════════════════════════════════════════════════
 
 
 if __name__ == '__main__':
