@@ -144,30 +144,7 @@ def init_db():
         exp DATETIME
     )
     ''')
-
-    # ?? AGREGADO Vanesa: tabla auditorias para guardar el historial por usuario ??
-    # Cada analisis queda registrado con: quien lo hizo, cuando, que codigo,
-    # y el resultado completo de la IA guardado como JSON en el campo 'resultado'.
-    # Asi el usuario puede ver su historial y volver a consultar analisis anteriores.
-    c.execute('''
-              CREATE TABLE IF NOT EXISTS recordatorios
-              (id INTEGER PRIMARY KEY AUTOINCREMENT,
-              titulo TEXT,
-              descripcion TEXT,
-              fecha TEXT,
-              hora TEXT)
-              ''')
     
-    c.execute('''
-              CREATE TABLE IF NOT EXISTS reservas
-              (reserva_id INTEGER PRIMARY KEY AUTOINCREMENT,
-              cancha_id INTEGER,
-              usuario_id INTEGER,
-              horario_id DATETIME,
-              descripcion TEXT,
-              num_personas INTEGER)
-              ''')
-
     # ── AGREGADO Vanesa: tabla auditorias para guardar el historial por usuario ──
     # Cada análisis queda registrado con: quién lo hizo, cuándo, qué código,
     # y el resultado completo de la IA guardado como JSON en el campo 'resultado'.
@@ -365,9 +342,6 @@ async def analyze_code(request: AnalyzeRequest, user_id: str = Depends(get_curre
     # El resultado de la IA lo guardamos como string JSON en la columna 'resultado'
     resultado_json = json.dumps(analysis, ensure_ascii=False)
 
-# Ruta para eliminar una reserva por ID
-@app.delete("/reservas/{reserva_id}",status_code=status.HTTP_200_OK)
-def delete_reserva(reserva_id: int):
     conn = sqlite3.connect(db)
     c = conn.cursor()
     c.execute(
